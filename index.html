@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a1a2e" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="MiApp" />
+  <meta name="description" content="Tu app personal de tareas y notas" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <title>MiApp — Tareas & Notas</title>
+  <style>
+    :root {
+      --bg:        #0f0f1a;
+      --surface:   #1a1a2e;
+      --card:      #16213e;
+      --border:    #2a2a4a;
+      --accent:    #e94560;
+      --accent2:   #f5a623;
+      --teal:      #0f9b8e;
+      --text:      #e8e8f0;
+      --muted:     #7a7a9a;
+      --done-text: #4a4a6a;
+      --radius:    14px;
+      --shadow:    0 8px 32px rgba(0,0,0,.45);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior: none;
+    }
+
+    /* ── SPLASH SCREEN ── */
+    #splash {
+      position: fixed; inset: 0; z-index: 999;
+      background: var(--bg);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 16px;
+      transition: opacity .5s ease;
+    }
+    #splash .logo { font-family: 'Syne', sans-serif; font-size: 48px; font-weight: 800; }
+    #splash .logo span { color: var(--accent); }
+    #splash p { color: var(--muted); font-size: 14px; letter-spacing: .05em; }
+    #splash .bar {
+      width: 120px; height: 3px; background: var(--border); border-radius: 99px; overflow: hidden; margin-top: 8px;
+    }
+    #splash .bar-fill {
+      height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 99px; animation: loadbar 1.2s ease forwards;
+    }
+    @keyframes loadbar { to { width: 100%; } }
+
+    /* ── LAYOUT ── */
+    #app { 
+      display: none; 
+      flex-direction: column; 
+      height: 100dvh; 
+      max-width: 480px; 
+      margin: 0 auto;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--surface);
+      padding: 20px 20px 0;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .header-top {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+    }
+    .header-top h1 {
+      font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -.02em;
+    }
+    .header-top h1 span { color: var(--accent); }
+    .date-badge {
+      font-size: 11px; color: var(--muted); text-transform: uppercase;
+      letter-spacing: .08em; background: var(--card);
+      padding: 4px 10px; border-radius: 99px; border: 1px solid var(--border);
+    }
+
+    /* ── TABS ── */
+    .tabs {
+      display: flex; gap: 4px;
+    }
+    .tab-btn {
+      flex: 1; padding: 11px 0; border: none; background: transparent;
+      font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
+      color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent;
+      transition: color .2s, border-color .2s; letter-spacing: .03em;
+    }
+    .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
+
+    /* ── PANELS ── */
+    .panel { display: none; flex: 1; overflow-y: auto; padding: 20px; -webkit-overflow-scrolling: touch; }
+    .panel.active { display: flex; flex-direction: column; gap: 14px; }
+
+    /* ── TASK INPUT ── */
+    .input-row {
+      display: flex; gap: 10px; align-items: stretch;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 10px;
+      box-shadow: var(--shadow);
+    }
+    .input-row input {
+      flex: 1; background: transparent; border: none; outline: none;
+      color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px;
+      padding: 4px 2px;
+    }
+    .input-row input::placeholder { color: var(--muted); }
+    .add-btn {
+      background: var(--accent); border: none; color: #fff;
+      border-radius: 9px; padding: 10px 16px;
+      font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700;
+      cursor: pointer; line-height: 1; flex-shrink: 0;
+      transition: transform .15s, background .15s;
+    }
+    .add-btn:active { transform: scale(.93); background: #c93050; }
+
+    /* ── TASK STATS ── */
+    .task-stats {
+      display: flex; gap: 10px;
+    }
+    .stat-pill {
+      padding: 6px 14px; border-radius: 99px; font-size: 12px; font-weight: 500;
+      border: 1px solid var(--border); background: var(--card); color: var(--muted);
+    }
+    .stat-pill strong { color: var(--text); font-family: 'Syne', sans-serif; }
+
+    /* ── TASK LIST ── */
+    .task-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .task-item {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px;
+      animation: slideIn .25s ease;
+      transition: opacity .2s;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .task-item.done { opacity: .55; }
+
+    .task-check {
+      appearance: none; -webkit-appearance: none;
+      width: 22px; height: 22px; border-radius: 7px; flex-shrink: 0;
+      border: 2px solid var(--border); cursor: pointer;
+      background: transparent; transition: background .2s, border-color .2s;
+      position: relative;
+    }
+    .task-check:checked { background: var(--teal); border-color: var(--teal); }
+    .task-check:checked::after {
+      content: '✓'; position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; color: #fff; font-weight: 700;
+    }
+
+    .task-text {
+      flex: 1; font-size: 15px; line-height: 1.4; word-break: break-word;
+      transition: color .2s, text-decoration .2s;
+    }
+    .task-item.done .task-text { text-decoration: line-through; color: var(--done-text); }
+
+    .del-btn {
+      background: transparent; border: none; color: var(--muted);
+      font-size: 18px; cursor: pointer; padding: 4px 6px; border-radius: 8px;
+      flex-shrink: 0; transition: color .2s, background .2s;
+    }
+    .del-btn:active { color: var(--accent); background: rgba(233,69,96,.12); }
+
+    /* ── CLEAR COMPLETED ── */
+    .clear-btn {
+      align-self: flex-start; background: transparent; border: 1px solid var(--border);
+      color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 12px;
+      padding: 6px 14px; border-radius: 99px; cursor: pointer;
+      transition: color .2s, border-color .2s;
+    }
+    .clear-btn:active { color: var(--accent); border-color: var(--accent); }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      text-align: center; padding: 40px 20px; color: var(--muted);
+    }
+    .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; line-height: 1.6; }
+
+    /* ── NOTES PANEL ── */
+    #panel-notes {
+      padding: 20px;
+    }
+    .notes-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
+    }
+    .notes-header h2 {
+      font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .08em;
+    }
+    .notes-saved {
+      font-size: 11px; color: var(--teal); opacity: 0; transition: opacity .4s;
+    }
+    .notes-saved.show { opacity: 1; }
+
+    .notes-area {
+      flex: 1;
+      width: 100%;
+      min-height: calc(100dvh - 220px);
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px;
+      color: var(--text); font-family: 'DM Sans', sans-serif;
+      font-size: 15px; line-height: 1.7; resize: none; outline: none;
+      box-shadow: var(--shadow);
+      transition: border-color .2s;
+    }
+    .notes-area:focus { border-color: var(--accent2); }
+    .notes-area::placeholder { color: var(--muted); }
+
+    /* ── SCROLLBAR ── */
+    .panel::-webkit-scrollbar { width: 4px; }
+    .panel::-webkit-scrollbar-track { background: transparent; }
+    .panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+  </style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="logo">Mi<span>App</span></div>
+  <p>Tareas &amp; Notas personales</p>
+  <div class="bar"><div class="bar-fill"></div></div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <div class="header-top">
+      <h1>Mi<span>App</span></h1>
+      <span class="date-badge" id="date-badge"></span>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="tasks">✅ Tareas</button>
+      <button class="tab-btn" data-tab="notes">📝 Notas</button>
+    </div>
+  </header>
+
+  <!-- TASKS PANEL -->
+  <div id="panel-tasks" class="panel active">
+    <div class="input-row">
+      <input id="task-input" type="text" placeholder="Agregar nueva tarea…" maxlength="200" />
+      <button class="add-btn" id="add-btn" aria-label="Agregar tarea">+</button>
+    </div>
+
+    <div class="task-stats">
+      <div class="stat-pill">Total: <strong id="stat-total">0</strong></div>
+      <div class="stat-pill">Hechas: <strong id="stat-done">0</strong></div>
+    </div>
+
+    <div class="task-list" id="task-list"></div>
+
+    <button class="clear-btn" id="clear-btn" style="display:none">Limpiar completadas</button>
+  </div>
+
+  <!-- NOTES PANEL -->
+  <div id="panel-notes" class="panel">
+    <div class="notes-header">
+      <h2>Mis notas</h2>
+      <span class="notes-saved" id="notes-saved">✓ Guardado</span>
+    </div>
+    <textarea
+      id="notes-area"
+      class="notes-area"
+      placeholder="Escribe aquí tus notas, ideas o recordatorios…"
+      spellcheck="true"
+    ></textarea>
+  </div>
+</div>
+
+<script>
+  // ── Helpers de almacenamiento ──────────────────────────────────────────
+  const store = {
+    get: (k, def) => { try { const v = localStorage.getItem(k); return v !== null ? JSON.parse(v) : def; } catch { return def; } },
+    set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+  };
+
+  // ── Estado ─────────────────────────────────────────────────────────────
+  let tasks = store.get('miapp_tasks', []);
+
+  // ── Splash → App ───────────────────────────────────────────────────────
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      const splash = document.getElementById('splash');
+      splash.style.opacity = '0';
+      setTimeout(() => {
+        splash.style.display = 'none';
+        const app = document.getElementById('app');
+        app.style.display = 'flex';
+        init();
+      }, 500);
+    }, 1400);
+  });
+
+  function init() {
+    // Fecha
+    const d = new Date();
+    document.getElementById('date-badge').textContent =
+      d.toLocaleDateString('es-ES', { weekday:'short', day:'numeric', month:'short' }).toUpperCase();
+
+    // Tabs
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    // Tareas
+    document.getElementById('add-btn').addEventListener('click', addTask);
+    document.getElementById('task-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') addTask();
+    });
+    document.getElementById('clear-btn').addEventListener('click', clearDone);
+    renderTasks();
+
+    // Notas
+    const notesArea = document.getElementById('notes-area');
+    notesArea.value = store.get('miapp_notes', '');
+    let saveTimer;
+    notesArea.addEventListener('input', () => {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        store.set('miapp_notes', notesArea.value);
+        const badge = document.getElementById('notes-saved');
+        badge.classList.add('show');
+        setTimeout(() => badge.classList.remove('show'), 2000);
+      }, 600);
+    });
+  }
+
+  // ── Tareas ─────────────────────────────────────────────────────────────
+  function addTask() {
+    const input = document.getElementById('task-input');
+    const text = input.value.trim();
+    if (!text) { input.focus(); return; }
+    tasks.unshift({ id: Date.now(), text, done: false });
+    store.set('miapp_tasks', tasks);
+    input.value = '';
+    input.focus();
+    renderTasks();
+  }
+
+  function toggleTask(id) {
+    tasks = tasks.map(t => t.id === id ? { ...t, done: !t.done } : t);
+    store.set('miapp_tasks', tasks);
+    renderTasks();
+  }
+
+  function deleteTask(id) {
+    tasks = tasks.filter(t => t.id !== id);
+    store.set('miapp_tasks', tasks);
+    renderTasks();
+  }
+
+  function clearDone() {
+    tasks = tasks.filter(t => !t.done);
+    store.set('miapp_tasks', tasks);
+    renderTasks();
+  }
+
+  function renderTasks() {
+    const list = document.getElementById('task-list');
+    const total = tasks.length;
+    const done  = tasks.filter(t => t.done).length;
+
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-done').textContent  = done;
+    document.getElementById('clear-btn').style.display = done > 0 ? 'block' : 'none';
+
+    if (total === 0) {
+      list.innerHTML = `
+        <div class="empty-state">
+          <div class="icon">🗒️</div>
+          <p>No hay tareas todavía.<br>¡Agrega la primera!</p>
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = tasks.map(t => `
+      <div class="task-item ${t.done ? 'done' : ''}" id="task-${t.id}">
+        <input class="task-check" type="checkbox" ${t.done ? 'checked' : ''}
+               onchange="toggleTask(${t.id})" aria-label="Marcar completada" />
+        <span class="task-text">${escHtml(t.text)}</span>
+        <button class="del-btn" onclick="deleteTask(${t.id})" aria-label="Eliminar tarea">✕</button>
+      </div>
+    `).join('');
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Service Worker ─────────────────────────────────────────────────────
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+</script>
+</body>
+</html>
