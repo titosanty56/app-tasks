@@ -1,6 +1,6 @@
 {
-  "name": "MiApp — Tareas & Notas",
-  "short_name": "MiApp",
+  "name": "SantiTasks",
+  "short_name": "SantiTasks",
   "description": "Tu app personal de tareas diarias y notas",
   "start_url": "./index.html",
   "display": "standalone",
